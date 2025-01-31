@@ -36,7 +36,6 @@ source(here::here("code", "functions.R"))
 
 # Load data
 metadata_complete <- read.csv(here::here("output", "metadata_complete.csv"), encoding = "UTF-8")
-# database_complete <- readRDS(here::here("output", "database_complete_anon.rds"))
 database_complete <- readRDS(here::here("output", "database_synthetic.rds"))
 
 
