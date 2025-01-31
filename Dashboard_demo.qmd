@@ -12,6 +12,12 @@ format:
 server: shiny
 ---
 
+::: {.callout-note}
+This project is an example of a dashboard for internal use, to automatically generate common plots and tables used for downstream reporting.
+
+The underlying data are **synthetic**, and results should not be used for any real-world inference.
+:::
+
 ```{r}
 #| context: setup
 #| message: false
