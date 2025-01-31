@@ -1,0 +1,292 @@
+---
+title: "Dashboard example"
+format: 
+  html:
+    grid:
+      sidebar-width: 300px
+      body-width: 900px
+      margin-width: 10px
+      gutter-width: 1.5rem    
+    embed-resources: true
+    self-contained: true
+server: shiny
+---
+
+```{r}
+#| context: setup
+#| message: false
+
+# Load packages
+pacman::p_load(
+  shiny, ggtext
+)
+
+# Read in the functions
+source(here::here("code", "functions.R"))
+
+# Run the prep_online_database.R file (!! SLOW !!)
+# ONLY run if you don't already have the relevant files (metadata + database)
+# source(here::here("code", "prep_online_database.R"))
+
+# Load data
+metadata_complete <- read.csv(here::here("output", "metadata_complete.csv"), encoding = "UTF-8")
+# database_complete <- readRDS(here::here("output", "database_complete_anon.rds"))
+database_complete <- readRDS(here::here("output", "database_synthetic.rds"))
+
+
+# Remove irrelevant variables from the metadata
+metadata_complete <- metadata_complete |> 
+  filter(!Variable %in% c("participant_identifier", "serocov_pop",
+                          "sp2_novdec_2020","sp3_juin_2021","sp4_avril_2022",
+                          "date_soumission", "birthdate")) |> 
+  # Keep only character/factor and weighting variables
+  filter(Class %in% c("character", "factor")|Variable == "surv_weight")
+
+# Variables to remove from the indicator choices (but keep in dataset)
+remove_elements <- c(
+  metadata_complete |> 
+    filter(str_detect(Variable, "age_cat|education")) |> 
+    pull(Variable), 
+  "sex", "sex_depist", "questionnaire", "year"
+)
+```
+
+
+```{r}
+#| panel: sidebar
+
+# Create the dropdown selection objects
+
+# Select the Axe
+selectInput("selected_axe", "Selection Axe:", 
+            choices = c("Tous", setdiff(unique(metadata_complete$Axe), c(NA, "Pondération"))), 
+            selected = "Tous")
+
+# Select the indicator
+selectInput("selected_indicateur", "Selection Indicateur:", 
+            choices = sort(unique(metadata_complete$Variable) %>% # must use here %>% and not |> 
+                             {.[!. %in% remove_elements]}) # remove "remove_elements"
+)
+
+# Select the questionnaire
+selectInput("selected_questionnaire", "Selection Questionnaire:", 
+            choices = unique(database_complete$questionnaire), 
+            selected = "Suivi de votre santé (avril 2024)")
+
+# Selection of the sex and age variables to be used for generating the plots
+selectInput("selected_sex", "Variable sexe:", 
+            choices = c("sex", "sex_depist"), 
+            selected = "sex")
+selectInput("selected_age", "Variable age:", 
+            choices = metadata_complete |>
+              filter(str_detect(Variable, "age_cat")) |> 
+              pull(Variable), 
+            selected = "age_cat")
+```
+
+
+```{r}
+#| context: server
+# Reactive expression to filter metadata to chosen axe
+filtered_metadata_axe <- reactive({
+  if(input$selected_axe == "Tous") {
+    metadata_complete
+  } else{
+    metadata_complete |> filter(Axe == input$selected_axe) |> droplevels()
+  }
+})
+
+# Observe changes in the 'selected_axe' input, and update indicator choices
+observeEvent(input$selected_axe, {
+  # Update the choices in the 'selected_indicateur' input
+  updateSelectInput(session, "selected_indicateur",
+                    choices = sort(unique(filtered_metadata_axe()$Variable) %>%  {.[!. %in% remove_elements]})
+  )
+})
+
+# Reactive expression to filter metadata to chosen indicateur
+filtered_metadata_indicateur <- reactive({
+  filtered_metadata_axe() |> filter(Variable == input$selected_indicateur)
+})
+
+updated_Q_choices <- reactive({
+  str_split(unique(filtered_metadata_indicateur()$Questionnaires), ", ")[[1]]
+})
+# Observe changes in the 'selected_indicateur' input and update questionnaire choices
+observeEvent(input$selected_indicateur, {
+  # Update the choices in the 'selected_indicateur' input
+  updateSelectInput(session, "selected_questionnaire",
+                    # str_split the Questionnaires variable to get available choices
+                    choices = updated_Q_choices(),
+                    selected = tail(updated_Q_choices(), 1)
+  )
+})
+```
+
+```{r}
+#| context: server
+
+# Reactive expression to filter database to the selected questionnaire
+filtered_design <- reactive({
+  database_complete |> 
+    filter(questionnaire == input$selected_questionnaire) |>
+    droplevels() |> 
+    srvyr::as_survey_design(weights = surv_weight)
+})
+
+# Calculate the standard weighted estimates for the selected indicator
+var_estimates <- reactive({
+  filtered_design() |>
+    calc_weighted_stacked_multiple(fill_var = input$selected_indicateur,
+                                   var = c(input$selected_sex, input$selected_age, "education_rec_fr"),
+                                   proportion = TRUE) |> 
+    rename(indicator = 3)
+})
+
+# Create the ESS-like table
+output$esslike_table <- renderUI(
+  htmltools_value(
+    var_estimates() |> 
+      esslike_table_outcome_2plus_levels(
+        caption = paste0("Indicateur: ", 
+                         metadata_complete |> filter(Variable == input$selected_indicateur) |> pull(Clean_name)),
+        outcome_text = "Indicateur", 
+        data_source = input$selected_questionnaire
+      )
+  )
+)
+
+# Create the ESS-like plot
+# use esslike_plot for binary variables, and esslike_by_plot for the rest
+output$esslike_plot <- renderPlot({
+  if(
+    filtered_metadata_indicateur() |> pull(Num_Values) == 2
+  ){
+    indicator_level = str_split(filtered_metadata_indicateur()$Values, ", ")[[1]][2] |> 
+      str_remove_all("[\\[\\]\"]")
+    
+    p <- esslike_plot(var_estimates() |> filter(indicator == indicator_level), facet = TRUE)+
+      labs(
+        title = paste0("Indicateur: ", filtered_metadata_indicateur() |> pull(Clean_name),
+                       ": ", indicator_level),
+        caption= paste("Source:", input$selected_questionnaire, "\nN =",
+                       unique(var_estimates()$n_non_miss), "répondant-es"))+
+      geom_text(aes(label = paste0(round(coef,1), "%"), y = if_else(`_low`< coef/2, if_else(`_low`-2 < 0, 0.6, `_low`-2), coef/2)),
+                size = 4)
+    p + theme(
+      axis.text.x = element_text(
+        # angle = 15, vjust = 0.8, 
+        size = 12),
+      plot.title = element_textbox_simple()
+    )
+  } else{
+    esslike_by_plot(df = var_estimates(),indicator, type = "dodge")+
+      labs(
+        title = paste("Indicateur:", filtered_metadata_indicateur() |> pull(Clean_name)),
+        caption= paste("Source:", input$selected_questionnaire, "\nN =",
+                       unique(var_estimates()$n_non_miss), "répondant-es")
+      )+
+      theme(
+        plot.title = element_textbox_simple()
+      )
+  }
+})
+```
+
+
+```{r}
+#| panel: center
+plotOutput("esslike_plot")
+
+# Add download button for esslike_plot
+downloadButton("download_esslike_plot", "Télécharger en SVG")
+downloadButton("download_esslike_plot_png", "Télécharger en PNG")
+downloadButton("download_esslike_plot_tif", "Télécharger en TIF")
+```
+
+```{r}
+#| context: server
+
+# Add server logic for downloading the plot as an SVG file
+output$download_esslike_plot <- downloadHandler(
+  filename = function() {
+    paste0(input$selected_indicateur,
+           "_OCS_plot_", Sys.Date(),
+           ".svg")
+    
+  },
+  content = function(file) {
+    # Render the plot to a temporary file and save as SVG
+    ggsave(file, plot = last_plot(), device = "svg",
+           height = 5, width = 9
+    )
+  }
+)
+
+# Add server logic for downloading the plot as an SVG file
+output$download_esslike_plot_png <- downloadHandler(
+  filename = function() {
+    paste0(input$selected_indicateur,
+           "_OCS_plot_", Sys.Date(),
+           ".png")
+    
+  },
+  content = function(file) {
+    # Render the plot to a temporary file and save as SVG
+    ggsave(file, plot = last_plot(), device = "png",
+           height = 5, width = 9
+    )
+  }
+)
+
+# Add server logic for downloading the plot as an SVG file
+output$download_esslike_plot_tif <- downloadHandler(
+  filename = function() {
+    paste0(input$selected_indicateur,
+           "_OCS_plot_", Sys.Date(),
+           ".tif")
+    
+  },
+  content = function(file) {
+    # Render the plot to a temporary file and save as SVG
+    ggsave(file, plot = last_plot(), device = "tif",
+           compression = "lzw",
+           height = 5, width = 9
+    )
+  }
+)
+```
+
+
+```{r}
+#| panel: center
+uiOutput("esslike_table")
+
+# Add download button for esslike_table
+downloadButton("download_esslike_table", "Télécharger en Word")
+```
+
+```{r}
+#| context: server
+
+# Add server logic for downloading the plot as an SVG file
+output$download_esslike_table <- downloadHandler(
+  filename = function() {
+    paste0(input$selected_indicateur,
+           "_OCS_table_", Sys.Date(),
+           ".docx")
+  },
+  content = function(file) {
+    # Render the plot to a temporary file and save as SVG
+    flextable::save_as_docx(
+      var_estimates() |> 
+      esslike_table_outcome_2plus_levels(
+        caption = paste0("Indicateur: ", 
+                         metadata_complete |> filter(Variable == input$selected_indicateur) |> pull(Clean_name)),
+        outcome_text = "Indicateur", 
+        data_source = input$selected_questionnaire
+      ), 
+      path = file)
+  }
+)
+```
