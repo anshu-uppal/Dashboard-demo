@@ -1,22 +1,13 @@
 ---
 title: "Dashboard example"
+author: "Anshu Uppal"
 format: 
-  html:
-    grid:
-      sidebar-width: 300px
-      body-width: 900px
-      margin-width: 10px
-      gutter-width: 1.5rem    
-    embed-resources: true
-    self-contained: true
+  dashboard:
+    nav-buttons: [github]
+    github: https://github.com/anshu-uppal/Dashboard-demo
 server: shiny
 ---
 
-::: {.callout-note}
-This project is an example of a dashboard for internal use, to automatically generate common plots and tables used for downstream reporting.
-
-The underlying data are **synthetic**, and results should not be used for any real-world inference.
-:::
 
 ```{r}
 #| context: setup
@@ -56,9 +47,15 @@ remove_elements <- c(
 )
 ```
 
+# {.sidebar}
+
+::: {.callout-note}
+This project is an example of a dashboard for internal use, to automatically generate common plots and tables used for downstream reporting.
+
+The underlying data are **synthetic**, and results should not be used for any real-world inference.
+:::
 
 ```{r}
-#| panel: sidebar
 
 # Create the dropdown selection objects
 
@@ -198,6 +195,7 @@ output$esslike_plot <- renderPlot({
 })
 ```
 
+# Figure  
 
 ```{r}
 #| panel: center
@@ -262,6 +260,7 @@ output$download_esslike_plot_tif <- downloadHandler(
 )
 ```
 
+# Table
 
 ```{r}
 #| panel: center
