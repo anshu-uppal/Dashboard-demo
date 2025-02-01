@@ -8,7 +8,6 @@ format:
 server: shiny
 ---
 
-
 ```{r}
 #| context: setup
 #| message: false
@@ -47,13 +46,13 @@ remove_elements <- c(
 )
 ```
 
-# {.sidebar}
-
-::: {.callout-note}
+::: callout-note
 This project is an example of a dashboard for internal use, to automatically generate common plots and tables used for downstream reporting.
 
 The underlying data are **synthetic**, and results should not be used for any real-world inference.
 :::
+
+#  {.sidebar width="320px"}
 
 ```{r}
 
@@ -85,7 +84,6 @@ selectInput("selected_age", "Variable age:",
               pull(Variable), 
             selected = "age_cat")
 ```
-
 
 ```{r}
 #| context: server
@@ -195,7 +193,7 @@ output$esslike_plot <- renderPlot({
 })
 ```
 
-# Figure  
+# Figure
 
 ```{r}
 #| panel: center
