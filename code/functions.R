@@ -364,6 +364,7 @@ esslike_by_plot = function(df, fill_var, type) { # the df is the created data fr
                                         "Sex" = "Sexe",
                                         "age_cat" = "Classe d'âge",
                                         "education_level" = "Education",
+                                        "education_rec_fr" = "Education",
                                         "education_level_rec" = "Education"))) + # this line specify how the axis titles have to be arranged and "labeller = as_labeller()"specify the name of the axis.x title, the variable names are replaced by the given name
     theme_minimal() + # backgroud and axis title are minimal, could be dark, classic or void
     theme(
