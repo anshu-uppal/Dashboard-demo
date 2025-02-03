@@ -3,6 +3,7 @@ title: "Dashboard example"
 author: "Anshu Uppal"
 format: 
   dashboard:
+    orientation: columns
     nav-buttons: [github]
     github: https://github.com/anshu-uppal/Dashboard-demo
 server: shiny
@@ -195,14 +196,20 @@ output$esslike_plot <- renderPlot({
 
 # Figure
 
-```{r}
-#| panel: center
-plotOutput("esslike_plot")
+## Plot
 
+```{r}
+plotOutput("esslike_plot")
+```
+
+## Buttons {width="150px"}
+
+```{r}
+#| title: "Télécharger"
 # Add download button for esslike_plot
-downloadButton("download_esslike_plot", "Télécharger en SVG")
-downloadButton("download_esslike_plot_png", "Télécharger en PNG")
-downloadButton("download_esslike_plot_tif", "Télécharger en TIF")
+downloadButton("download_esslike_plot", "en SVG")
+downloadButton("download_esslike_plot_png", "en PNG")
+downloadButton("download_esslike_plot_tif", "en TIF")
 ```
 
 ```{r}
@@ -263,9 +270,14 @@ output$download_esslike_plot_tif <- downloadHandler(
 ```{r}
 #| panel: center
 uiOutput("esslike_table")
+```
 
+## Buttons {width="150px"}
+
+```{r}
+#| title: "Télécharger"
 # Add download button for esslike_table
-downloadButton("download_esslike_table", "Télécharger en Word")
+downloadButton("download_esslike_table", "en Word")
 ```
 
 ```{r}
