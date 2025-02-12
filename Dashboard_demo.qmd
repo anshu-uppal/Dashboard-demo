@@ -226,7 +226,7 @@ output$download_esslike_plot <- downloadHandler(
   content = function(file) {
     # Render the plot to a temporary file and save as SVG
     ggsave(file, plot = last_plot(), device = "svg",
-           height = 7, width = 10
+           height = 8, width = 11
     )
   }
 )
@@ -242,7 +242,7 @@ output$download_esslike_plot_png <- downloadHandler(
   content = function(file) {
     # Render the plot to a temporary file and save as SVG
     ggsave(file, plot = last_plot(), device = "png",
-           height = 7, width = 10
+           height = 8, width = 11
     )
   }
 )
@@ -259,7 +259,7 @@ output$download_esslike_plot_tif <- downloadHandler(
     # Render the plot to a temporary file and save as SVG
     ggsave(file, plot = last_plot(), device = "tif",
            compression = "lzw",
-           height = 7, width = 10
+           height = 8, width = 11
     )
   }
 )
