@@ -21,10 +21,6 @@ pacman::p_load(
 # Read in the functions
 source(here::here("code", "functions.R"))
 
-# Run the prep_online_database.R file (!! SLOW !!)
-# ONLY run if you don't already have the relevant files (metadata + database)
-# source(here::here("code", "prep_online_database.R"))
-
 # Load data
 metadata_complete <- read.csv(here::here("output", "metadata_complete.csv"), encoding = "UTF-8")
 database_complete <- readRDS(here::here("output", "database_synthetic.rds"))
