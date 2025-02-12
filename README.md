@@ -5,3 +5,5 @@ This repository contains the code to showcase an example of an internal dashboar
 A screenshot is included below:
 
 ![](Dashboard_screenshot.png)
+![](Dashboard_screenshot2.png)
+
