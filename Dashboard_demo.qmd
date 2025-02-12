@@ -15,7 +15,7 @@ server: shiny
 
 # Load packages
 pacman::p_load(
-  shiny, ggtext
+  shiny, ggtext, quarto
 )
 
 # Read in the functions
