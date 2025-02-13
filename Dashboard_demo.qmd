@@ -23,7 +23,7 @@ source(here::here("code", "functions.R"))
 
 # Load data
 metadata_complete <- read.csv(here::here("output", "metadata_complete.csv"), encoding = "UTF-8")
-database_complete <- readRDS(here::here("output", "database_synthetic.rds"))
+database_synthetic <- readRDS(here::here("output", "database_synthetic.rds"))
 
 
 # Remove irrelevant variables from the metadata
@@ -68,7 +68,7 @@ selectInput("selected_indicateur", "Selection Indicateur:",
 
 # Select the questionnaire
 selectInput("selected_questionnaire", "Selection Questionnaire:", 
-            choices = unique(database_complete$questionnaire), 
+            choices = unique(database_synthetic$questionnaire), 
             selected = "Suivi de votre santé (avril 2024)")
 
 # Selection of the sex and age variables to be used for generating the plots
@@ -125,7 +125,7 @@ observeEvent(input$selected_indicateur, {
 
 # Reactive expression to filter database to the selected questionnaire
 filtered_design <- reactive({
-  database_complete |> 
+  database_synthetic |> 
     filter(questionnaire == input$selected_questionnaire) |>
     droplevels() |> 
     srvyr::as_survey_design(weights = surv_weight)
